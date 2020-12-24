@@ -24,6 +24,7 @@ import sys
 import datetime
 import logging
 import binascii
+from pprint import pprint
 
 from zk import ZK, const
 from zk.attendance import Attendance
@@ -51,7 +52,6 @@ class ZkMachine(models.Model):
     company_id = fields.Many2one('res.company', string='Company', default=lambda self: self.env.user.company_id.id)
     password = fields.Integer('Password')
 
-    @api.multi
     def clear_attendance(self):
         # todo
         for info in self:
@@ -81,13 +81,11 @@ class ZkMachine(models.Model):
                 _logger.error("+++++++++++++++++++ ZK Attendance Mahcine Exception++++++++++++++++++++++", e)
                 pass
 
-    @api.multi
     def download_attendance(self):
         zk_attendance = self.env['zk.machine.attendance']
         att_obj = self.env['hr.attendance']
         for info in self:
-            print('download with ' + str(info.password))
-            zk = ZK(info.name, port=info.port_no, timeout=5, password=info.password, force_udp=info.is_udp, ommit_ping=False)
+            zk = ZK(info.name, port=info.port_no, timeout=5, password=info.password, force_udp=info.is_udp, ommit_ping=True)
             conn = zk.connect()
             if not conn:
                 raise UserError(_('Unable to connect, please check the parameters and network connections.'))
@@ -100,6 +98,8 @@ class ZkMachine(models.Model):
                 attendance = False
             if not attendance:
                 raise UserError(_('Unable to get the attendance log (may be empty!), please try again later.'))
+
+            pprint(attendance)
 
             for each in attendance:
                 employee_id = self.env['hr.employee'].search(
