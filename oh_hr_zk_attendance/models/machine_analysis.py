@@ -32,6 +32,7 @@ class HrEmployee(models.Model):
 class ZkMachine(models.Model):
     _name = 'zk.machine.attendance'
     _inherit = 'hr.attendance'
+    _description = 'ZK Attendance Log'
 
     @api.constrains('check_in', 'check_out', 'employee_id')
     def _check_validity(self):
@@ -60,6 +61,7 @@ class ReportZkDevice(models.Model):
     _name = 'zk.report.daily.attendance'
     _auto = False
     _order = 'punching_day desc'
+    _description = 'ZK Attendance Daily Log'
 
     name = fields.Many2one('hr.employee', string='Employee')
     punching_day = fields.Datetime(string='Date')
