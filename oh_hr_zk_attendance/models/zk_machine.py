@@ -85,7 +85,6 @@ class ZkMachine(models.Model):
     def download_attendance(self):
         zk_attendance = self.env['zk.machine.attendance']
         att_obj = self.env['hr.attendance']
-        issue_employees = self.env['hr.employee']
         for info in self:
             zk = ZK(info.name, port=info.port_no, timeout=5, password=info.password, force_udp=info.is_udp, ommit_ping=True)
             conn = zk.connect()
@@ -126,12 +125,8 @@ class ZkMachine(models.Model):
                                             ('check_out', '=', False)])
                 if each.punch == 0:  # check-in
                     if not att_var:
-                        try:
                             att_obj.create({'employee_id': employee_id.id,
                                             'check_in': each.timestamp})
-                        except:
-                            _logger.info('#### Exception when creating hr.attendance record')
-                            issue_employees |= employee_id
                 if each.punch == 1:  # check-out
                     if len(att_var) == 1:
                         att_var.write({'check_out': each.timestamp})
@@ -141,11 +136,4 @@ class ZkMachine(models.Model):
                             att_var1[-1].write({'check_out': each.timestamp})
             zk.enable_device()
             zk.disconnect()
-            if issue_employees:
-                warn_msg = _('The following employees encountered issues with fingerprint check in/check out.\n{}'.format(', '.join(issue_employees.mapped('name'))))
-                return {'warning': {
-                    'title': _('Warning'),
-                    'message': warn_msg
-                }
-                }
             return True
