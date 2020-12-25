@@ -24,7 +24,9 @@ import sys
 import datetime
 import logging
 import binascii
-from pprint import pprint
+import logging
+from pprint import pprint, pformat
+_logger = logging.getLogger(__name__)
 
 from zk import ZK, const
 from zk.attendance import Attendance
@@ -85,6 +87,7 @@ class ZkMachine(models.Model):
     def download_attendance(self):
         zk_attendance = self.env['zk.machine.attendance']
         att_obj = self.env['hr.attendance']
+        issue_employees = self.env['hr.employee']
         for info in self:
             zk = ZK(info.name, port=info.port_no, timeout=5, password=info.password, force_udp=info.is_udp, ommit_ping=True)
             conn = zk.connect()
@@ -100,7 +103,8 @@ class ZkMachine(models.Model):
             if not attendance:
                 raise UserError(_('Unable to get the attendance log (may be empty!), please try again later.'))
 
-            pprint(attendance)
+            _logger.info('#### attendance records from machine')
+            _logger.info(pformat(attendance))
 
             for each in attendance:
                 employee_id = self.env['hr.employee'].search(
@@ -124,8 +128,11 @@ class ZkMachine(models.Model):
                                             ('check_out', '=', False)])
                 if each.punch == 0:  # check-in
                     if not att_var:
-                        att_obj.create({'employee_id': employee_id.id,
-                                        'check_in': each.timestamp})
+                        try:
+                            att_obj.create({'employee_id': employee_id.id,
+                                            'check_in': each.timestamp})
+                        except:
+                            issue_employees |= employee_id
                 if each.punch == 1:  # check-out
                     if len(att_var) == 1:
                         att_var.write({'check_out': each.timestamp})
@@ -135,4 +142,11 @@ class ZkMachine(models.Model):
                             att_var1[-1].write({'check_out': each.timestamp})
             zk.enable_device()
             zk.disconnect()
+            if issue_employees:
+                warn_msg = _('The following employees encountered issues with fingerprint check in/check out.\n{}'.format(', '.join(issue_employees.mapped('name'))))
+                return {'warning': {
+                    'title': _('Warning'),
+                    'message': warn_msg
+                }
+                }
             return True
