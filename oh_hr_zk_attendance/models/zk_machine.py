@@ -130,6 +130,7 @@ class ZkMachine(models.Model):
                             att_obj.create({'employee_id': employee_id.id,
                                             'check_in': each.timestamp})
                         except:
+                            _logger.info('#### Exception when creating hr.attendance record')
                             issue_employees |= employee_id
                 if each.punch == 1:  # check-out
                     if len(att_var) == 1:
