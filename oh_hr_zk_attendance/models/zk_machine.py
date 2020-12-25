@@ -125,15 +125,21 @@ class ZkMachine(models.Model):
                                             ('check_out', '=', False)])
                 if each.punch == 0:  # check-in
                     if not att_var:
-                            att_obj.create({'employee_id': employee_id.id,
-                                            'check_in': each.timestamp})
+                        att_obj.create({'employee_id': employee_id.id,
+                                        'check_in': each.timestamp})
                 if each.punch == 1:  # check-out
                     if len(att_var) == 1:
-                        att_var.write({'check_out': each.timestamp})
+                        try:
+                            att_var.write({'check_out': each.timestamp})
+                        except:
+                            pass
                     else:
                         att_var1 = att_obj.search([('employee_id', '=', employee_id.id)])
                         if att_var1:
-                            att_var1[-1].write({'check_out': each.timestamp})
+                            try:
+                                att_var1[-1].write({'check_out': each.timestamp})
+                            except:
+                                pass
             zk.enable_device()
             zk.disconnect()
             return True
