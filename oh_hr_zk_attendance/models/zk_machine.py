@@ -100,9 +100,6 @@ class ZkMachine(models.Model):
             if not attendance:
                 raise UserError(_('Unable to get the attendance log (may be empty!), please try again later.'))
 
-            _logger.info('#### attendance records from machine')
-            _logger.info(pformat(attendance))
-
             for each in attendance:
                 employee_id = self.env['hr.employee'].search(
                     [('device_id', '=', each.user_id)])
