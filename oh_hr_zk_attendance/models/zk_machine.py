@@ -24,7 +24,6 @@ import sys
 import datetime
 import logging
 import binascii
-import logging
 from pprint import pprint, pformat
 _logger = logging.getLogger(__name__)
 
@@ -35,7 +34,6 @@ from odoo import api, fields, models
 from odoo import _
 from odoo.exceptions import UserError, ValidationError
 
-_logger = logging.getLogger(__name__)
 
 
 class HrAttendance(models.Model):
