@@ -38,9 +38,11 @@
         'data/download_data.xml'
 
     ],
+    'demo':[
+        'data/attendance_demo.xml'
+    ],
     'images': ['static/description/banner.jpg'],
     'license': 'AGPL-3',
-    'demo': [],
     'installable': True,
     'auto_install': False,
     'application': False,
