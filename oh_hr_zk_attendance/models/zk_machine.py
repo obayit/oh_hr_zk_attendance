@@ -74,6 +74,12 @@ class ZkMachine(models.Model):
     issue_count = fields.Integer('Issues Count', compute='_compute_issue_count')
 
     tz = fields.Selection(_tz_get, string='Timezone', default=lambda self: self._context.get('tz'), required=True)
+    tz_offset = fields.Char(compute='_compute_tz_offset', string='Timezone offset', invisible=True)
+
+    @api.depends('tz')
+    def _compute_tz_offset(self):
+        for r in self:
+            r.tz_offset = datetime.datetime.now(pytz.timezone(r.tz or 'GMT')).strftime('%z')
     
     def get_user_time(self, target_date):
         from_date = fields.Datetime.from_string(target_date)

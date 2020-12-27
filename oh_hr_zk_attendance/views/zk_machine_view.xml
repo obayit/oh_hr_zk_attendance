@@ -30,6 +30,7 @@
                             <field name="password" password="True" groups="hr_attendance.group_hr_attendance_manager"/>
                             <field name="address_id"/>
                             <field name="tz"/>
+                            <field name="tz_offset"/>
                         </group>
                         <group>
                             <field name="company_id" groups="base.group_multi_company"/>
