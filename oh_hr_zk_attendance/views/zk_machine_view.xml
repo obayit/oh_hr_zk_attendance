@@ -12,6 +12,11 @@
                             icon="fa-download " confirm="Are you sure you want to do this?" />
                 </header>
                 <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button class="oe_stat_button" name="%(zk_issue_action)d" type="action" icon="fa-bug" help="Issues">
+                            <field string="Issues" name="issue_count" widget="statinfo"/>
+                        </button>
+                    </div>
                     <div class="oe_title">
                         <label for="name" />
                         <h1>
@@ -24,6 +29,7 @@
                             <field name="is_udp"/>
                             <field name="password" password="True" groups="hr_attendance.group_hr_attendance_manager"/>
                             <field name="address_id"/>
+                            <field name="tz"/>
                         </group>
                         <group>
                             <field name="company_id" groups="base.group_multi_company"/>
@@ -43,6 +49,7 @@
                 <field name="port_no"/>
                 <field name="address_id"/>
                 <field name="company_id" groups="base.group_multi_company"/>
+                <field name="tz"/>
             </tree>
         </field>
     </record>

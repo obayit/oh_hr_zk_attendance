@@ -24,6 +24,8 @@ import sys
 import datetime
 import logging
 import binascii
+import pdb
+import os
 from pprint import pprint, pformat
 _logger = logging.getLogger(__name__)
 
@@ -34,13 +36,27 @@ from odoo import api, fields, models
 from odoo import _
 from odoo.exceptions import UserError, ValidationError
 
+from odoo.addons.base.models.res_partner import _tz_get
 
+CHECK_IN = 0
+CHECK_OUT = 1
 
 class HrAttendance(models.Model):
     _inherit = 'hr.attendance'
 
     device_id = fields.Char(string='Biometric Device ID')
 
+class ZkIssue(models.Model):
+    _name = 'hr.zk.issue'
+    _description = "Issues with attendance machine"
+
+    machine_id = fields.Many2one('zk.machine', string='Biometric Device ID')
+    employee_id = fields.Many2one('hr.employee', string='Employee')
+    issue_type = fields.Selection([('still_in', "Didn't check out"),
+                                    ('unknown', 'Unknown Issue')],
+                                  string='Issue Type')
+    datetime = fields.Datetime('Related Time')
+    error_message = fields.Text('Error Message')
 
 class ZkMachine(models.Model):
     _name = 'zk.machine'
@@ -52,6 +68,18 @@ class ZkMachine(models.Model):
     address_id = fields.Many2one('res.partner', string='Address')
     company_id = fields.Many2one('res.company', string='Company', default=lambda self: self.env.user.company_id.id)
     password = fields.Integer('Password')
+    issue_ids = fields.One2many('hr.zk.issue', 'machine_id', 'Issues')
+    issue_count = fields.Integer('Issues Count', compute='_compute_issue_count')
+
+    tz = fields.Selection(_tz_get, string='Timezone', default=lambda self: self._context.get('tz'), required=True)
+    
+    def get_utc_time(self, target_date):
+        from_date = fields.Datetime.from_string(target_date)
+        return fields.Datetime.to_string(pytz.timezone(self.tz).localize(from_date, is_dst=None).astimezone(pytz.utc))
+
+    def _compute_issue_count(self):
+        for r in self:
+            r.issue_count = len(r.issue_ids)
 
     def clear_attendance(self):
         # todo
@@ -79,12 +107,12 @@ class ZkMachine(models.Model):
             try:
                 machine.download_attendance()
             except Exception as e:
-                _logger.error("+++++++++++++++++++ ZK Attendance Mahcine Exception++++++++++++++++++++++", e)
-                pass
+                _logger.error("+++++++++++++++++++ ZK Attendance Mahcine Exception++++++++++++++++++++++\n{}".format(pformat(e)))
 
     def download_attendance(self):
         zk_attendance = self.env['zk.machine.attendance']
         att_obj = self.env['hr.attendance']
+        issue_obj = self.env['hr.zk.issue']
         for info in self:
             zk = ZK(info.name, port=info.port_no, timeout=5, password=info.password, force_udp=info.is_udp, ommit_ping=True)
             conn = zk.connect()
@@ -95,10 +123,11 @@ class ZkMachine(models.Model):
             try:
                 attendance = conn.get_attendance()
             except Exception as e:
-                _logger.info("+++++++++++++++++++ ZK Attendance Mahcine Exception++++++++++++++++++++++", e)
+                _logger.info("+++++++++++++++++++ ZK Attendance Mahcine Exception++++++++++++++++++++++\n{}".format(pformat(e)))
                 attendance = False
             if not attendance:
                 raise UserError(_('Unable to get the attendance log (may be empty!), please try again later.'))
+            issue_obj.search([]).unlink()
 
             for each in attendance:
                 employee_id = self.env['hr.employee'].search(
@@ -107,36 +136,45 @@ class ZkMachine(models.Model):
                     continue
 
                 duplicate_atten_ids = zk_attendance.search(
-                    [('device_id', '=', each.user_id), ('punching_time', '=', each.timestamp)])
+                    #TODO: when enabling multi-machine add the machine_id to this domain
+                    [('device_id', '=', each.user_id), ('punching_time', '=', info.get_utc_time(each.timestamp))])
                 if duplicate_atten_ids:
                     continue
 
                 each.timestamp = each.timestamp - datetime.timedelta(hours=2)
                 zk_attendance.create({'employee_id': employee_id.id,
-                                        'device_id': each.user_id,
-                                        'attendance_type': '1',
-                                        'punch_type': str(each.punch),
-                                        'punching_time': each.timestamp,
-                                        'address_id': info.address_id.id})
+                                    'device_id': each.user_id,
+                                    'attendance_type': '1',
+                                    'punch_type': str(each.punch),
+                                    'punching_time': each.timestamp,
+                                    'address_id': info.address_id.id})
                 att_var = att_obj.search([('employee_id', '=', employee_id.id),
                                             ('check_out', '=', False)])
-                if each.punch == 0:  # check-in
-                    if not att_var:
+                if each.punch == CHECK_IN and not att_var:
+                    try:
                         att_obj.create({'employee_id': employee_id.id,
                                         'check_in': each.timestamp})
-                if each.punch == 1:  # check-out
-                    if len(att_var) == 1:
-                        try:
-                            att_var.write({'check_out': each.timestamp})
-                        except:
-                            pass
-                    else:
-                        att_var1 = att_obj.search([('employee_id', '=', employee_id.id)])
-                        if att_var1:
-                            try:
-                                att_var1[-1].write({'check_out': each.timestamp})
-                            except:
-                                pass
+                    except Exception as ex: 
+                        issue_obj.create({
+                            'employee_id': employee_id.id,
+                            'issue_type': 'still_in',
+                            'machine_id': info.id,
+                            'datetime': each.timestamp,
+                            'error_message': ex,
+                            })
+                        continue
+                elif each.punch == CHECK_OUT:  # check-out
+                    try:
+                        att_var.write({'check_out': each.timestamp})
+                    except Exception as ex: 
+                        issue_obj.create({
+                            'employee_id': employee_id.id,
+                            'issue_type': 'unknown',
+                            'machine_id': info.id,
+                            'datetime': each.timestamp,
+                            'error_message': ex,
+                            })
+                        continue
             zk.enable_device()
             zk.disconnect()
             return True

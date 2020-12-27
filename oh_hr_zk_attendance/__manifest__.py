@@ -31,6 +31,7 @@
     'depends': ['base_setup', 'hr_attendance'],
     'data': [
         'security/ir.model.access.csv',
+        'views/zk_issue_views.xml',
         'views/zk_machine_view.xml',
         'views/zk_machine_attendance_view.xml',
         'data/download_data.xml'
