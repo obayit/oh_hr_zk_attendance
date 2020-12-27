@@ -5,10 +5,10 @@ from odoo import models, fields, api, _
 class HrEmployee(models.Model):
     _inherit = "hr.employee"
 
-    device_ids = fields.One2many('hr.biometric.device', 'employee_id', string='Biometric Device ID')
+    device_ids = fields.One2many('hr.biometric.employee', 'employee_id', string='Biometric Device ID')
 
 class HrEmployeeBiometricId(models.Model):
-    _name = "hr.biometric.device"
+    _name = "hr.biometric.employee"
     _description = "Relation for Employee and Biometric Device"
 
     def _get_default_machine(self):

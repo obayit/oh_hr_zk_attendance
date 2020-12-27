@@ -131,7 +131,7 @@ class ZkMachine(models.Model):
             issue_obj.search([]).unlink()
 
             for each in attendance:
-                biometric_employee_id = self.env['hr.biometric.device'].search(
+                biometric_employee_id = self.env['hr.biometric.employee'].search(
                     [('machine_id', '=', info.id), ('device_id', '=', each.user_id)])
                 employee_id = biometric_employee_id and biometric_employee_id.employee_id or False
                 if not employee_id:
