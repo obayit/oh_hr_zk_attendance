@@ -34,6 +34,7 @@ class ZkMachine(models.Model):
         """overriding the __check_validity function for employee attendance."""
         pass
 
+    machine_id = fields.Many2one('zk.machine', 'Biometric Device')
     device_id = fields.Char(string='Biometric Device ID')
     punch_type = fields.Selection([('0', 'Check In'),
                                    ('1', 'Check Out'),

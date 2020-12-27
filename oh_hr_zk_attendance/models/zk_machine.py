@@ -44,6 +44,7 @@ CHECK_OUT = 1
 class HrAttendance(models.Model):
     _inherit = 'hr.attendance'
 
+    machine_id = fields.Many2one('zk.machine', 'Biometric Device')
     device_id = fields.Char(string='Biometric Device ID')
 
 class ZkIssue(models.Model):
@@ -130,19 +131,21 @@ class ZkMachine(models.Model):
             issue_obj.search([]).unlink()
 
             for each in attendance:
-                employee_id = self.env['hr.employee'].search(
-                    [('device_id', '=', each.user_id)])
+                biometric_employee_id = self.env['hr.biometric.device'].search(
+                    [('machine_id', '=', info.id), ('device_id', '=', each.user_id)])
+                employee_id = biometric_employee_id and biometric_employee_id.employee_id or False
                 if not employee_id:
                     continue
 
                 duplicate_atten_ids = zk_attendance.search(
                     #TODO: when enabling multi-machine add the machine_id to this domain
-                    [('device_id', '=', each.user_id), ('punching_time', '=', info.get_utc_time(each.timestamp))])
+                    [('machine_id', '=', info.id), ('device_id', '=', each.user_id), ('punching_time', '=', info.get_utc_time(each.timestamp))])
                 if duplicate_atten_ids:
                     continue
 
                 each.timestamp = each.timestamp - datetime.timedelta(hours=2)
                 zk_attendance.create({'employee_id': employee_id.id,
+                                    'machine_id': info.id,
                                     'device_id': each.user_id,
                                     'attendance_type': '1',
                                     'punch_type': str(each.punch),

@@ -60,17 +60,6 @@
         <field name="view_mode">tree,form</field>
     </record>
 
-    <record id="hr_employee_inherit_form_view" model="ir.ui.view">
-        <field name="name">hr.employee.form</field>
-        <field name="model">hr.employee</field>
-        <field name="inherit_id" ref="hr.view_employee_form"/>
-        <field name="arch" type="xml">
-            <field name="user_id" position="after">
-                <field name="device_id"/>
-            </field>
-        </field>
-    </record>
-
     <menuitem id="zk_machine_menu" parent="hr_attendance.menu_hr_attendance_root" sequence="50" name="Biometric Manager" />
     <menuitem id="zk_machine_sub_menu" parent="zk_machine_menu"  name="Device Configuration" action="zk_machine_action" sequence="1"/>
 </odoo>
