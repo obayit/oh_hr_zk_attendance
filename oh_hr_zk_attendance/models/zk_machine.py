@@ -26,6 +26,7 @@ import logging
 import binascii
 import pdb
 import os
+import re
 from pprint import pprint, pformat
 _logger = logging.getLogger(__name__)
 
@@ -74,9 +75,14 @@ class ZkMachine(models.Model):
 
     tz = fields.Selection(_tz_get, string='Timezone', default=lambda self: self._context.get('tz'), required=True)
     
-    def get_utc_time(self, target_date):
+    def get_user_time(self, target_date):
         from_date = fields.Datetime.from_string(target_date)
-        return fields.Datetime.to_string(pytz.timezone(self.tz).localize(from_date, is_dst=None).astimezone(pytz.utc))
+        user_tz = self.env.user.tz
+        if not user_tz:
+            user_tz = self._context.get('tz')
+        if not user_tz:
+            user_tz = pytz.utc
+        return fields.Datetime.to_string(pytz.timezone(self.tz).localize(from_date, is_dst=None).astimezone(pytz.timezone(user_tz) or pytz.utc))
 
     def _compute_issue_count(self):
         for r in self:
@@ -128,9 +134,10 @@ class ZkMachine(models.Model):
                 attendance = False
             if not attendance:
                 raise UserError(_('Unable to get the attendance log (may be empty!), please try again later.'))
-            issue_obj.search([]).unlink()
+            issue_obj.search([('machine_id', '=', info.id)]).unlink()
 
             for each in attendance:
+                converted_time = info.get_user_time(each.timestamp)
                 biometric_employee_id = self.env['hr.biometric.employee'].search(
                     [('machine_id', '=', info.id), ('device_id', '=', each.user_id)])
                 employee_id = biometric_employee_id and biometric_employee_id.employee_id or False
@@ -138,43 +145,43 @@ class ZkMachine(models.Model):
                     continue
 
                 duplicate_atten_ids = zk_attendance.search(
-                    #TODO: when enabling multi-machine add the machine_id to this domain
-                    [('machine_id', '=', info.id), ('device_id', '=', each.user_id), ('punching_time', '=', info.get_utc_time(each.timestamp))])
+                    [('machine_id', '=', info.id), ('device_id', '=', each.user_id) 
+                    ,('punching_time', '=', converted_time)
+                    ])
                 if duplicate_atten_ids:
                     continue
 
-                each.timestamp = each.timestamp - datetime.timedelta(hours=2)
                 zk_attendance.create({'employee_id': employee_id.id,
                                     'machine_id': info.id,
                                     'device_id': each.user_id,
                                     'attendance_type': '1',
                                     'punch_type': str(each.punch),
-                                    'punching_time': each.timestamp,
+                                    'punching_time': converted_time,
                                     'address_id': info.address_id.id})
                 att_var = att_obj.search([('employee_id', '=', employee_id.id),
                                             ('check_out', '=', False)])
                 if each.punch == CHECK_IN and not att_var:
                     try:
                         att_obj.create({'employee_id': employee_id.id,
-                                        'check_in': each.timestamp})
+                                        'check_in': converted_time})
                     except Exception as ex: 
                         issue_obj.create({
                             'employee_id': employee_id.id,
                             'issue_type': 'still_in',
                             'machine_id': info.id,
-                            'datetime': each.timestamp,
+                            'datetime': converted_time,
                             'error_message': ex,
                             })
                         continue
                 elif each.punch == CHECK_OUT:  # check-out
                     try:
-                        att_var.write({'check_out': each.timestamp})
+                        att_var.write({'check_out': converted_time})
                     except Exception as ex: 
                         issue_obj.create({
                             'employee_id': employee_id.id,
                             'issue_type': 'unknown',
                             'machine_id': info.id,
-                            'datetime': each.timestamp,
+                            'datetime': converted_time,
                             'error_message': ex,
                             })
                         continue
