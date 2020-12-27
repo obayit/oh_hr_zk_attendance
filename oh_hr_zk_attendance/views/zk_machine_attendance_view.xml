@@ -1,16 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-	<!-- Customize Attendance Report -->
-    <record id="inherited_view_attendance_tree" model="ir.ui.view">
-        <field name="name">inherited_hr.attendance.tree</field>
-        <field name="model">hr.attendance</field>
-        <field name="inherit_id" ref="hr_attendance.view_attendance_tree"/>
-        <field name="arch" type="xml">
-            <tree string="Employee attendances">
-                <field name="worked_hours" type="measure"/>
-            </tree>
-        </field>
-    </record>
 
     <record id="inherited_hr_attendance_view_filter" model="ir.ui.view">
         <field name="name">inherited_hr_attendance_view_filter</field>
