@@ -94,19 +94,24 @@ class ZkMachine(models.Model):
         for r in self:
             r.issue_count = len(r.issue_ids)
 
-    def clear_attendance(self):
-        # todo
+    def test_connection(self):
         for info in self:
             try:
-                zk = ZK(info.name, port=info.port_no, timeout=5, password=info.password, force_udp=info.is_udp, ommit_ping=False)
+                zk = ZK(info.name, port=info.port_no, timeout=5, password=info.password, force_udp=info.is_udp, ommit_ping=True)
                 conn = zk.connect()
                 if conn:
-                    clear_data = zk.get_attendance()
-                    if clear_data:
-                        zk.clear_attendance()
-                        self._cr.execute("""delete from zk_machine_attendance""")
-                    else:
-                        raise UserError(_('Unable to get the attendance log, please try again later.'))
+                    title = _("Connection Test Succeeded!")
+                    message = _("Everything seems properly set up!")
+                    return {
+                        'type': 'ir.actions.client',
+                        'tag': 'display_notification',
+                        'params': {
+                            'title': title,
+                            'message': message,
+                            'type': 'info',
+                            'sticky': False,
+                        }
+                    }
                 else:
                     raise UserError(_('Unable to connect, please check the parameters and network connections.'))
             except:

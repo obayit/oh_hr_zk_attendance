@@ -6,8 +6,7 @@
         <field name="arch" type="xml">
             <form string="Biometric Device">
                 <header>
-                    <button name="clear_attendance" type="object" string="Clear Data" class="oe_highlight"
-                                icon="fa-remove " confirm="Are you sure you want to do this?"/>
+                    <button name="test_connection" type="object" string="Test Connection" icon="fa-television"/>
                     <button name="download_attendance" type="object" string="Download Data" class="oe_highlight"
                             icon="fa-download " confirm="Are you sure you want to do this?" />
                 </header>
