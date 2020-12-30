@@ -35,8 +35,7 @@ class ZkIssue(models.Model):
     employee_id = fields.Many2one('hr.employee', 'Employee')
     issue_type = fields.Selection([('missing_in', "Missing Check In"),
                                     ('missing_out', "Missing Check Out"),
-                                    ('missing_schedule', "Missing Work Schedule")],
-                                  'Issue Type')
+                                    ('missing_schedule', "Missing Work Schedule")])
     datetime = fields.Datetime('Related Time')
 
 class ZkMachine(models.Model):
@@ -44,11 +43,11 @@ class ZkMachine(models.Model):
     _description = 'ZK Machine Configuration'
 
     name = fields.Char('Machine IP', required=True)
-    port_no = fields.Integer('Port No', required=True)
+    port_no = fields.Integer('Port No.', required=True)
     is_udp = fields.Boolean('Is using UDP', default=False)
     address_id = fields.Many2one('res.partner', 'Address')
     company_id = fields.Many2one('res.company', 'Company', default=lambda self: self.env.user.company_id.id)
-    password = fields.Integer('Password')
+    password = fields.Integer()
     ignore_time = fields.Integer('Ignore Period', help="Ignore attendance record when the duration is shorter than this.", default=120)
     issue_ids = fields.One2many('hr.zk.issue', 'machine_id', 'Issues')
     issue_count = fields.Integer('Issues Count', compute='_compute_issue_count')
@@ -95,7 +94,7 @@ class ZkMachine(models.Model):
                 else:
                     raise UserError(_('Unable to connect, please check the parameters and network connections.'))
             except:
-                raise ValidationError('Warning !!! Machine is not connected')
+                raise ValidationError(_('Warning !!! Machine is not connected'))
 
     @api.model
     def cron_download(self):

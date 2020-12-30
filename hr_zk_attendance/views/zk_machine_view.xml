@@ -45,7 +45,7 @@
         <field name="name">zk.machine.tree</field>
         <field name="model">zk.machine</field>
         <field name="arch" type="xml">
-            <tree string="Biometric Machine">
+            <tree>
                 <field name="name"/>
                 <field name="port_no"/>
                 <field name="address_id"/>

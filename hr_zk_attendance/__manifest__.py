@@ -2,7 +2,6 @@
     'name': 'ZKteco Attendance Device Integration',
     'version': '13.0.1.0.0',
     'summary': """Integrating Biometric Device With HR Attendance and HR Contract""",
-    'description': 'This module integrates Odoo with the biometric device',
     'category': 'Human Resources',
     'author': 'Obay Abdelgadir',
     'website': "http://www.github.com/obayit",

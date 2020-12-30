@@ -28,7 +28,7 @@ class ZkMachine(models.Model):
                                         ('2','Type_2'),
                                         ('3','Password'),
                                         ('4','Card')], string='Category')
-    punching_time = fields.Datetime(string='Punching Time')
+    punching_time = fields.Datetime()
     address_id = fields.Many2one('res.partner', string='Working Address')
 
     _sql_constraints = [('punching_time_unique', 'unique(punching_time)', 'Duplicate punching time')]

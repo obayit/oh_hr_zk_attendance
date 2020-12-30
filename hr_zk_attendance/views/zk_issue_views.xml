@@ -5,7 +5,7 @@
         <field name="name">zk.issue.tree</field>
         <field name="model">hr.zk.issue</field>
         <field name="arch" type="xml">
-            <tree string="Attendance Issues">
+            <tree>
                 <field name="employee_id"/>
                 <field name="machine_id"/>
                 <field name="datetime"/>
