@@ -1,24 +1,3 @@
-# -*- coding: utf-8 -*-
-###################################################################################
-#
-#    Cybrosys Technologies Pvt. Ltd.
-#    Copyright (C) 2018-TODAY Cybrosys Technologies(<http://www.cybrosys.com>).
-#    Author: cybrosys(<https://www.cybrosys.com>)
-#
-#    This program is free software: you can modify
-#    it under the terms of the GNU Affero General Public License (AGPL) as
-#    published by the Free Software Foundation, either version 3 of the
-#    License, or (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Affero General Public License for more details.
-#
-#    You should have received a copy of the GNU Affero General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###################################################################################
 import pytz
 import sys
 import datetime
@@ -46,40 +25,44 @@ class HrAttendance(models.Model):
     _inherit = 'hr.attendance'
 
     machine_id = fields.Many2one('zk.machine', 'Biometric Device')
-    device_id = fields.Char(string='Biometric Device ID')
+    device_id = fields.Char('Biometric Device ID')
 
 class ZkIssue(models.Model):
     _name = 'hr.zk.issue'
     _description = "Issues with attendance machine"
 
-    machine_id = fields.Many2one('zk.machine', string='Biometric Device ID')
-    employee_id = fields.Many2one('hr.employee', string='Employee')
-    issue_type = fields.Selection([('still_in', "Didn't check out"),
-                                    ('unknown', 'Unknown Issue')],
-                                  string='Issue Type')
+    machine_id = fields.Many2one('zk.machine', 'Biometric Device ID')
+    employee_id = fields.Many2one('hr.employee', 'Employee')
+    issue_type = fields.Selection([('missing_in', "Missing Check In"),
+                                    ('missing_out', "Missing Check Out"),
+                                    ('missing_schedule', "Missing Work Schedule")],
+                                  'Issue Type')
     datetime = fields.Datetime('Related Time')
-    error_message = fields.Text('Error Message')
 
 class ZkMachine(models.Model):
     _name = 'zk.machine'
     _description = 'ZK Machine Configuration'
 
-    name = fields.Char(string='Machine IP', required=True)
-    port_no = fields.Integer(string='Port No', required=True)
+    name = fields.Char('Machine IP', required=True)
+    port_no = fields.Integer('Port No', required=True)
     is_udp = fields.Boolean('Is using UDP', default=False)
-    address_id = fields.Many2one('res.partner', string='Address')
-    company_id = fields.Many2one('res.company', string='Company', default=lambda self: self.env.user.company_id.id)
+    address_id = fields.Many2one('res.partner', 'Address')
+    company_id = fields.Many2one('res.company', 'Company', default=lambda self: self.env.user.company_id.id)
     password = fields.Integer('Password')
+    ignore_time = fields.Integer('Ignore Period', help="Ignore attendance record when the duration is shorter than this.", default=120)
     issue_ids = fields.One2many('hr.zk.issue', 'machine_id', 'Issues')
     issue_count = fields.Integer('Issues Count', compute='_compute_issue_count')
 
-    tz = fields.Selection(_tz_get, string='Timezone', default=lambda self: self._context.get('tz'), required=True)
-    tz_offset = fields.Char(compute='_compute_tz_offset', string='Timezone offset', invisible=True)
+    tz = fields.Selection(_tz_get, 'Timezone', default=lambda self: self._context.get('tz'), required=True)
+    tz_offset = fields.Char('Timezone Offset', compute='_compute_tz_offset', invisible=True)
+    tz_offset_number = fields.Float('Timezone Offset Numeric', compute='_compute_tz_offset')
 
     @api.depends('tz')
     def _compute_tz_offset(self):
         for r in self:
             r.tz_offset = datetime.datetime.now(pytz.timezone(r.tz or 'GMT')).strftime('%z')
+            device_now = datetime.datetime.now(pytz.timezone(r.tz or 'GMT'))
+            r.tz_offset_number = device_now.utcoffset().total_seconds()/60/60
     
     def get_utc_time(self, target_date):
         # why? the machine sends the time, in it's timezone
@@ -146,10 +129,16 @@ class ZkMachine(models.Model):
 
             for each in attendance:
                 converted_time = info.get_utc_time(each.timestamp)
+                if converted_time[5:7] != '07':
+                    continue
                 biometric_employee_id = self.env['hr.biometric.employee'].search(
                     [('machine_id', '=', info.id), ('device_id', '=', each.user_id)])
                 employee_id = biometric_employee_id and biometric_employee_id.employee_id or False
                 if not employee_id:
+                    continue
+
+                ##########################3
+                if employee_id.id != 2:
                     continue
 
                 duplicate_atten_ids = zk_attendance.search(
@@ -157,6 +146,17 @@ class ZkMachine(models.Model):
                     ,('punching_time', '=', converted_time)
                     ])
                 if duplicate_atten_ids:
+                    continue
+
+                print('# {} {}'.format(converted_time, employee_id.name))
+                closes_period = employee_id.get_time_period(converted_time, info.tz_offset_number)
+                if not closes_period['type']:
+                    issue_obj.create({
+                        'employee_id': employee_id.id,
+                        'issue_type': 'missing_schedule',
+                        'machine_id': info.id,
+                        'datetime': converted_time,
+                        })
                     continue
 
                 zk_attendance.create({'employee_id': employee_id.id,
@@ -170,33 +170,47 @@ class ZkMachine(models.Model):
                                             ('check_out', '=', False)])
                 # if each.punch == CHECK_IN and not att_var:
                 if not att_var: # assume check-in
-                    try:
+                    if closes_period['type'] == 'check_in':
+                        # normal
+                        print('@ normal in')
                         att_obj.create({'employee_id': employee_id.id,
                                         'check_in': converted_time})
-                    except Exception as ex: 
+                    else:
+                        print('@ abnormal in')
+                        # problem: employee didn't check in
+                        # meh = (fields.Datetime.from_string(converted_time) - datetime.timedelta(minutes=1))
+                        abnormal_record = att_obj.create({'employee_id': employee_id.id,
+                                        'check_in': converted_time})
+                        abnormal_record.check_out = converted_time
                         issue_obj.create({
                             'employee_id': employee_id.id,
-                            'issue_type': 'still_in',
+                            'issue_type': 'missing_in',
                             'machine_id': info.id,
                             'datetime': converted_time,
-                            'error_message': ex,
                             })
-                        continue
                 # elif each.punch == CHECK_OUT:  # check-out
                 else:  # assume check-out
-                    try:
-                        time_diff = (fields.Datetime.from_string(converted_time) - att_var.check_in).seconds
-                        if time_diff > info.ignore_time: # TODO add this field hidden
-                            att_var.write({'check_out': converted_time})
-                    except Exception as ex: 
+                    time_diff = (fields.Datetime.from_string(converted_time) - att_var.check_in).seconds
+                    if time_diff < info.ignore_time:
+                        print('@ ignored')
+                        continue
+                    if closes_period['type'] == 'check_out':
+                        print('@ normal out')
+                        # normal
+                        att_var.write({'check_out': converted_time})
+                    else:
+                        print('@ abnormal out')
+                        att_var.check_out = att_var.check_in
+                        abnormal_record = att_obj.create({'employee_id': employee_id.id,
+                                        'check_in': converted_time})
+                        abnormal_record.check_out = converted_time
+                        # problem: employee didn't check in
                         issue_obj.create({
                             'employee_id': employee_id.id,
-                            'issue_type': 'unknown',
+                            'issue_type': 'missing_out',
                             'machine_id': info.id,
                             'datetime': converted_time,
-                            'error_message': ex,
                             })
-                        continue
             zk.enable_device()
             zk.disconnect()
             return True
