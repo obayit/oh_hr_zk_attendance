@@ -4,7 +4,7 @@
 		<field name="name">Download Data</field>
 		<field eval="True" name="active" />
 		<field name="user_id" ref="base.user_root" />
-		<field name="interval_number">10</field>
+		<field name="interval_number">120</field>
 		<field name="interval_type">minutes</field>
 		<field name="numbercall">-1</field>
 		

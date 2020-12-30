@@ -81,14 +81,11 @@ class ZkMachine(models.Model):
         for r in self:
             r.tz_offset = datetime.datetime.now(pytz.timezone(r.tz or 'GMT')).strftime('%z')
     
-    def get_user_time(self, target_date):
+    def get_utc_time(self, target_date):
+        # why? the machine sends the time, in it's timezone
+        # but Odoo inside the code here only deals with UTC time
         from_date = fields.Datetime.from_string(target_date)
-        user_tz = self.env.user.tz
-        if not user_tz:
-            user_tz = self._context.get('tz')
-        if not user_tz:
-            user_tz = pytz.utc
-        return fields.Datetime.to_string(pytz.timezone(self.tz).localize(from_date, is_dst=None).astimezone(pytz.timezone(user_tz) or pytz.utc))
+        return fields.Datetime.to_string(pytz.timezone(self.tz).localize(from_date, is_dst=None).astimezone(pytz.utc))
 
     def _compute_issue_count(self):
         for r in self:
@@ -148,7 +145,7 @@ class ZkMachine(models.Model):
             issue_obj.search([('machine_id', '=', info.id)]).unlink()
 
             for each in attendance:
-                converted_time = info.get_user_time(each.timestamp)
+                converted_time = info.get_utc_time(each.timestamp)
                 biometric_employee_id = self.env['hr.biometric.employee'].search(
                     [('machine_id', '=', info.id), ('device_id', '=', each.user_id)])
                 employee_id = biometric_employee_id and biometric_employee_id.employee_id or False
@@ -171,7 +168,8 @@ class ZkMachine(models.Model):
                                     'address_id': info.address_id.id})
                 att_var = att_obj.search([('employee_id', '=', employee_id.id),
                                             ('check_out', '=', False)])
-                if each.punch == CHECK_IN and not att_var:
+                # if each.punch == CHECK_IN and not att_var:
+                if not att_var: # assume check-in
                     try:
                         att_obj.create({'employee_id': employee_id.id,
                                         'check_in': converted_time})
@@ -184,9 +182,12 @@ class ZkMachine(models.Model):
                             'error_message': ex,
                             })
                         continue
-                elif each.punch == CHECK_OUT:  # check-out
+                # elif each.punch == CHECK_OUT:  # check-out
+                else:  # assume check-out
                     try:
-                        att_var.write({'check_out': converted_time})
+                        time_diff = (fields.Datetime.from_string(converted_time) - att_var.check_in).seconds
+                        if time_diff > info.ignore_time: # TODO add this field hidden
+                            att_var.write({'check_out': converted_time})
                     except Exception as ex: 
                         issue_obj.create({
                             'employee_id': employee_id.id,
