@@ -9,7 +9,7 @@
             <search string="Hr Attendance Search">
                 <group expand="0" string="Group By">
                     <separator/>
-                	<filter name="date" string="Date" context="{'group_by':'check_in:day'}"/>
+                    <filter name="date" string="Date" context="{'group_by':'check_in:day'}"/>
                     
                 </group>
             </search>
