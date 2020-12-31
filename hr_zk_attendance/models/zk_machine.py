@@ -26,6 +26,7 @@ class HrAttendance(models.Model):
 
     machine_id = fields.Many2one('zk.machine', 'Biometric Device')
     device_id = fields.Char('Biometric Device ID')
+    period_number = fields.Integer()
 
 class ZkIssue(models.Model):
     _name = 'hr.zk.issue'
@@ -35,6 +36,7 @@ class ZkIssue(models.Model):
     employee_id = fields.Many2one('hr.employee', 'Employee')
     issue_type = fields.Selection([('missing_in', "Missing Check In"),
                                     ('missing_out', "Missing Check Out"),
+                                    ('cross_period', "Check In and Check Out are from different periods"),
                                     ('missing_schedule', "Missing Work Schedule")])
     datetime = fields.Datetime('Related Time')
 
@@ -104,7 +106,7 @@ class ZkMachine(models.Model):
             try:
                 machine.download_attendance()
             except Exception as e:
-                _logger.error("+++++++++++++++++++ ZK Attendance Mahcine Exception++++++++++++++++++++++\n{}".format(pformat(e)))
+                _logger.error("+++++++++++++++++++ ZK Attendance Machine Exception++++++++++++++++++++++\n{}".format(pformat(e)))
 
     def download_attendance(self):
         zk_attendance = self.env['zk.machine.attendance']
@@ -120,7 +122,7 @@ class ZkMachine(models.Model):
             try:
                 attendance = conn.get_attendance()
             except Exception as e:
-                _logger.info("+++++++++++++++++++ ZK Attendance Mahcine Exception++++++++++++++++++++++\n{}".format(pformat(e)))
+                _logger.info("+++++++++++++++++++ ZK Attendance Machine Exception++++++++++++++++++++++\n{}".format(pformat(e)))
                 attendance = False
             if not attendance:
                 raise UserError(_('Unable to get the attendance log (may be empty!), please try again later.'))
@@ -140,16 +142,16 @@ class ZkMachine(models.Model):
                 if employee_id.id != 2:
                     continue
 
-                duplicate_atten_ids = zk_attendance.search(
+                duplicate_attendance_ids = zk_attendance.search(
                     [('machine_id', '=', info.id), ('device_id', '=', each.user_id) 
                     ,('punching_time', '=', converted_time)
                     ])
-                if duplicate_atten_ids:
+                if duplicate_attendance_ids:
                     continue
 
                 print('# {} {}'.format(converted_time, employee_id.name))
-                closes_period = employee_id.get_time_period(converted_time, info.tz_offset_number)
-                if not closes_period['type']:
+                closest_period = employee_id.get_time_period(converted_time, info.tz_offset_number)
+                if not closest_period['type']:
                     issue_obj.create({
                         'employee_id': employee_id.id,
                         'issue_type': 'missing_schedule',
@@ -164,21 +166,24 @@ class ZkMachine(models.Model):
                                     'attendance_type': '1',
                                     'punch_type': str(each.punch),
                                     'punching_time': converted_time,
+                                    'period_number': closest_period['period'],
                                     'address_id': info.address_id.id})
                 att_var = att_obj.search([('employee_id', '=', employee_id.id),
                                             ('check_out', '=', False)])
                 # if each.punch == CHECK_IN and not att_var:
                 if not att_var: # assume check-in
-                    if closes_period['type'] == 'check_in':
+                    if closest_period['type'] == 'check_in':
                         # normal
                         print('@ normal in')
                         att_obj.create({'employee_id': employee_id.id,
+                                        'period_number': closest_period['period'],
                                         'check_in': converted_time})
                     else:
                         print('@ abnormal in')
                         # problem: employee didn't check in
                         # meh = (fields.Datetime.from_string(converted_time) - datetime.timedelta(minutes=1))
                         abnormal_record = att_obj.create({'employee_id': employee_id.id,
+                                        'period_number': closest_period['period'],
                                         'check_in': converted_time})
                         abnormal_record.check_out = converted_time
                         issue_obj.create({
@@ -193,20 +198,21 @@ class ZkMachine(models.Model):
                     if time_diff < info.ignore_time:
                         print('@ ignored')
                         continue
-                    if closes_period['type'] == 'check_out':
-                        print('@ normal out')
+                    if closest_period['type'] == 'check_out' and closest_period['period'] == att_var.period_number:
                         # normal
+                        print('@ normal out')
                         att_var.write({'check_out': converted_time})
                     else:
                         print('@ abnormal out')
                         att_var.check_out = att_var.check_in
                         abnormal_record = att_obj.create({'employee_id': employee_id.id,
+                                        'period_number': closest_period['period'],
                                         'check_in': converted_time})
                         abnormal_record.check_out = converted_time
                         # problem: employee didn't check in
                         issue_obj.create({
                             'employee_id': employee_id.id,
-                            'issue_type': 'missing_out',
+                            'issue_type': 'missing_out' if closest_period['type'] == 'check_out' else 'cross_period',
                             'machine_id': info.id,
                             'datetime': converted_time,
                             })
