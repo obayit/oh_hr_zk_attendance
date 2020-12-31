@@ -18,9 +18,6 @@ from odoo.exceptions import UserError, ValidationError
 
 from odoo.addons.base.models.res_partner import _tz_get
 
-CHECK_IN = 0
-CHECK_OUT = 1
-
 class HrAttendance(models.Model):
     _inherit = 'hr.attendance'
 
@@ -130,16 +127,10 @@ class ZkMachine(models.Model):
 
             for each in attendance:
                 converted_time = info.get_utc_time(each.timestamp)
-                if converted_time[5:7] != '07':
-                    continue
                 biometric_employee_id = self.env['hr.biometric.employee'].search(
                     [('machine_id', '=', info.id), ('device_id', '=', each.user_id)])
                 employee_id = biometric_employee_id and biometric_employee_id.employee_id or False
                 if not employee_id:
-                    continue
-
-                ##########################3
-                if employee_id.id != 2:
                     continue
 
                 duplicate_attendance_ids = zk_attendance.search(
@@ -149,7 +140,6 @@ class ZkMachine(models.Model):
                 if duplicate_attendance_ids:
                     continue
 
-                print('# {} {}'.format(converted_time, employee_id.name))
                 closest_period = employee_id.get_time_period(converted_time, info.tz_offset_number)
                 if not closest_period['type']:
                     issue_obj.create({
@@ -170,16 +160,13 @@ class ZkMachine(models.Model):
                                     'address_id': info.address_id.id})
                 att_var = att_obj.search([('employee_id', '=', employee_id.id),
                                             ('check_out', '=', False)])
-                # if each.punch == CHECK_IN and not att_var:
                 if not att_var: # assume check-in
                     if closest_period['type'] == 'check_in':
                         # normal
-                        print('@ normal in')
                         att_obj.create({'employee_id': employee_id.id,
                                         'period_number': closest_period['period'],
                                         'check_in': converted_time})
                     else:
-                        print('@ abnormal in')
                         # problem: employee didn't check in
                         # meh = (fields.Datetime.from_string(converted_time) - datetime.timedelta(minutes=1))
                         abnormal_record = att_obj.create({'employee_id': employee_id.id,
@@ -192,18 +179,14 @@ class ZkMachine(models.Model):
                             'machine_id': info.id,
                             'datetime': converted_time,
                             })
-                # elif each.punch == CHECK_OUT:  # check-out
                 else:  # assume check-out
                     time_diff = (fields.Datetime.from_string(converted_time) - att_var.check_in).seconds
                     if time_diff < info.ignore_time:
-                        print('@ ignored')
                         continue
                     if closest_period['type'] == 'check_out' and closest_period['period'] == att_var.period_number:
                         # normal
-                        print('@ normal out')
                         att_var.write({'check_out': converted_time})
                     else:
-                        print('@ abnormal out')
                         att_var.check_out = att_var.check_in
                         abnormal_record = att_obj.create({'employee_id': employee_id.id,
                                         'period_number': closest_period['period'],

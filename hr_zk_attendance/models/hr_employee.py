@@ -8,19 +8,16 @@ class HrEmployee(models.Model):
     device_ids = fields.One2many('hr.biometric.employee', 'employee_id', 'Biometric Device ID')
 
     def get_time_period(self, datetime_str, tz_offset_number):
-        datetime_date = fields.Datetime.from_string(datetime_str)
         self.ensure_one()
+        datetime_date = fields.Datetime.from_string(datetime_str)
         contract_ids = self.sudo()._get_contracts(datetime_str, datetime_str)
         attendance_ids = contract_ids.mapped('resource_calendar_id.attendance_ids')
-        week_counter = 0
         closest_period = {'value': 99, 'type': False, 'period': False}
         period_counter = 0
         for att_id in attendance_ids.filtered(lambda r: r.dayofweek == str(datetime_date.weekday())).sorted('hour_from'):
             period_counter += 1
             hour_from = (att_id.hour_from - tz_offset_number)
             hour_to = (att_id.hour_to - tz_offset_number)
-            week_counter += 1
-            print('#{} make sure {} == {}'.format(week_counter, att_id.dayofweek, datetime_date.weekday()))
             computed_hour = datetime_date.hour + (datetime_date.minute / 60)
             diff_from = abs(computed_hour - hour_from)
             diff_to = abs(computed_hour - hour_to)
@@ -29,11 +26,6 @@ class HrEmployee(models.Model):
                 closest_period['value'] = diff_min
                 closest_period['type'] = 'check_in' if diff_from < diff_to else 'check_out'
                 closest_period['period'] = period_counter
-            print('# {}-{} att from {:02.2f} to {:02.2f} give-time {:02.2f} diff from {:02.2f} to {:02.2f} given {}'.format(
-                att_id.dayofweek, datetime_date.weekday(),
-                hour_from, hour_to, computed_hour,
-                diff_from, diff_to, datetime_str))
-        print('# closest period is {} '.format(closest_period))
         return closest_period
 
 class HrEmployeeBiometricId(models.Model):
