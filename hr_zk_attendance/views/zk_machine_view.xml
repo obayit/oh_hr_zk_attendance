@@ -30,6 +30,7 @@
                             <field name="address_id"/>
                             <field name="tz"/>
                             <field name="tz_offset"/>
+                            <field name="ignore_time" groups="base.group_no_one"/>
                         </group>
                         <group>
                             <field name="company_id" groups="base.group_multi_company"/>
@@ -44,7 +45,7 @@
         <field name="name">zk.machine.tree</field>
         <field name="model">zk.machine</field>
         <field name="arch" type="xml">
-            <tree string="Biometric Machine">
+            <tree>
                 <field name="name"/>
                 <field name="port_no"/>
                 <field name="address_id"/>

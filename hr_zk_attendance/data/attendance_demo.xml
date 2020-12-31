@@ -1,18 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<odoo>
-<data noupdate="1">
+<odoo noupdate="1">
 
     <record id="zk_machine_01" model="zk.machine">
-		<field name="name">192.168.0.99</field>
-		<field name="port_no" eval="4370"/>
-		<field name="tz">Asia/Riyadh</field>
-	</record>
+        <field name="name">192.168.0.99</field>
+        <field name="port_no" eval="4370"/>
+        <field name="tz">Asia/Riyadh</field>
+    </record>
 
     <record id="hr_biometric_employee_01" model="hr.biometric.employee">
         <field name="machine_id" eval="ref('zk_machine_01')"/>
         <field name="employee_id" eval="ref('hr.employee_admin')"/>
         <field name="device_id">1</field>
-	</record>
+    </record>
 
     <record id="hr_biometric_employee_02" model="hr.biometric.employee">
         <field name="machine_id" eval="ref('zk_machine_01')"/>
@@ -74,5 +73,4 @@
         <field name="device_id">11</field>
     </record>
 
-</data>
 </odoo>

@@ -9,8 +9,7 @@
             <search string="Hr Attendance Search">
                 <group expand="0" string="Group By">
                     <separator/>
-                	<filter name="date" string="Date" context="{'group_by':'check_in:day'}"/>
-                    
+                        <filter name="date" string="Date" context="{'group_by':'check_in:day'}"/>
                 </group>
             </search>
         </field>
@@ -20,7 +19,7 @@
         <field name="name">zk.hr.attendance.tree</field>
         <field name="model">zk.machine.attendance</field>
         <field name="arch" type="xml" >
-            <tree string="Attendance" create="false" delete="false"
+            <tree create="false" delete="false"
                 decoration-success="punch_type == '0'"
                 decoration-danger="punch_type == '1'">
                 <field name="employee_id" readonly="1"/>

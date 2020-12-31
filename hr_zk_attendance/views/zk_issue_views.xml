@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_zk_issue_search" model="ir.ui.view">
+        <field name="name">zk.issue.search</field>
+        <field name="model">hr.zk.issue</field>
+        <field name="arch" type="xml">
+            <search string="Hr Attendance Search">
+                <field name="employee_id" string="Employee"/>
+                <field name="machine_id" string="Machine"/>
+                <group expand="0" string="Group By">
+                    <separator/>
+                        <filter name="issue_type" string="Issue Type" context="{'group_by':'issue_type'}"/>
+                        <filter name="employee_id" string="Employee" context="{'group_by':'employee_id'}"/>
+                        <filter name="machine_id" string="Machine" context="{'group_by':'machine_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_zk_issue_tree" model="ir.ui.view">
+        <field name="name">zk.issue.tree</field>
+        <field name="model">hr.zk.issue</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="employee_id"/>
+                <field name="machine_id"/>
+                <field name="datetime"/>
+                <field name="issue_type"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="zk_issue_action" model="ir.actions.act_window">
+        <field name="name">Issues</field>
+        <field name="res_model">hr.zk.issue</field>
+        <field name="view_mode">tree</field>
+    </record>
+
+</odoo>
