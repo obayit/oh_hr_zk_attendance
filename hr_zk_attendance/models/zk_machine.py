@@ -105,6 +105,15 @@ class ZkMachine(models.Model):
             except Exception as e:
                 _logger.error("+++++++++++++++++++ ZK Attendance Machine Exception++++++++++++++++++++++\n{}".format(pformat(e)))
 
+    def create_issue(self, issue_obj, issue_data):
+        duplicate_id = issue_obj.search([('employee_id', '=', issue_data['employee_id']),
+        ('datetime', '=', issue_data['datetime']),
+        ('issue_type', '=', issue_data['issue_type'])
+        ])
+        if duplicate_id:
+            return duplicate_id
+        return issue_obj.create(issue_data)
+
     def download_attendance(self):
         zk_attendance = self.env['zk.machine.attendance']
         att_obj = self.env['hr.attendance']
@@ -123,7 +132,6 @@ class ZkMachine(models.Model):
                 attendance = False
             if not attendance:
                 raise UserError(_('Unable to get the attendance log (may be empty!), please try again later.'))
-            issue_obj.search([('machine_id', '=', info.id)]).unlink()
 
             for each in attendance:
                 converted_time = info.get_utc_time(each.timestamp)
@@ -142,11 +150,11 @@ class ZkMachine(models.Model):
 
                 closest_period = employee_id.get_time_period(converted_time, info.tz_offset_number)
                 if not closest_period['type']:
-                    issue_obj.create({
+                    info.create_issue(issue_obj, {
                         'employee_id': employee_id.id,
-                        'issue_type': 'missing_schedule',
                         'machine_id': info.id,
                         'datetime': converted_time,
+                        'issue_type': 'missing_schedule',
                         })
                     continue
 
@@ -173,11 +181,11 @@ class ZkMachine(models.Model):
                                         'period_number': closest_period['period'],
                                         'check_in': converted_time})
                         abnormal_record.check_out = converted_time
-                        issue_obj.create({
+                        info.create_issue(issue_obj, {
                             'employee_id': employee_id.id,
-                            'issue_type': 'missing_in',
                             'machine_id': info.id,
                             'datetime': converted_time,
+                            'issue_type': 'missing_in',
                             })
                 else:  # assume check-out
                     time_diff = (fields.Datetime.from_string(converted_time) - att_var.check_in).seconds
@@ -193,11 +201,11 @@ class ZkMachine(models.Model):
                                         'check_in': converted_time})
                         abnormal_record.check_out = converted_time
                         # problem: employee didn't check in
-                        issue_obj.create({
+                        info.create_issue(issue_obj, {
                             'employee_id': employee_id.id,
-                            'issue_type': 'missing_out' if closest_period['type'] == 'check_out' else 'cross_period',
                             'machine_id': info.id,
                             'datetime': converted_time,
+                            'issue_type': 'missing_out' if closest_period['type'] == 'check_out' else 'cross_period',
                             })
             zk.enable_device()
             zk.disconnect()
