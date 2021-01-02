@@ -8,6 +8,7 @@
     'depends': ['base_setup', 'hr_attendance', 'hr_contract'],
     'data': [
         'security/ir.model.access.csv',
+        'wizards/wizard_download_attendance_views.xml',
         'views/hr_employee_views.xml',
         'views/zk_issue_views.xml',
         'views/zk_machine_view.xml',

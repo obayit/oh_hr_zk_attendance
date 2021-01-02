@@ -42,7 +42,7 @@ class ZkMachine(models.Model):
     _description = 'ZK Machine Configuration'
 
     name = fields.Char('Machine IP', required=True)
-    description = fields.Char('Description')
+    description = fields.Char()
     port_no = fields.Integer('Port No.', required=True)
     is_udp = fields.Boolean('Is using UDP', default=False)
     address_id = fields.Many2one('res.partner', 'Address')
@@ -116,7 +116,7 @@ class ZkMachine(models.Model):
             return duplicate_id
         return issue_obj.create(issue_data)
 
-    def download_attendance(self):
+    def download_attendance(self, date_from, date_to):
         zk_attendance = self.env['zk.machine.attendance']
         att_obj = self.env['hr.attendance']
         issue_obj = self.env['hr.zk.issue']
@@ -137,6 +137,13 @@ class ZkMachine(models.Model):
 
             for each in attendance:
                 converted_time = info.get_utc_time(each.timestamp)
+                datetime_obj = fields.Datetime.from_string(converted_time)
+                date_obj = datetime_obj.date()
+                if date_from and date_from > date_obj:
+                    continue
+                if date_to and date_to < date_obj:
+                    continue
+
                 biometric_employee_id = self.env['hr.biometric.employee'].search(
                     [('machine_id', '=', info.id), ('device_id', '=', each.user_id)])
                 employee_id = biometric_employee_id and biometric_employee_id.employee_id or False
@@ -181,7 +188,6 @@ class ZkMachine(models.Model):
                                         'check_in': converted_time})
                     else:
                         # problem: employee didn't check in
-                        # meh = (fields.Datetime.from_string(converted_time) - datetime.timedelta(minutes=1))
                         abnormal_record = att_obj.create({'employee_id': employee_id.id,
                                         'period_number': closest_period['period'],
                                         'check_in': converted_time})

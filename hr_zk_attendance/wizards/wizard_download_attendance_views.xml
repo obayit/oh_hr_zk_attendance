@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="wizard_download_attendance_form" model="ir.ui.view">
+        <field name="name">hr.zk.download.wizard.form</field>
+        <field name="model">hr.zk.download.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="date_from"/>
+                        </group>
+                        <group>
+                            <field name="date_to"/>
+                        </group>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="download_data" string="Download"
+                            class="oe_highlight" type="object" />
+                    <button special="cancel" string="Cancel" />
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_download_wizard" model="ir.actions.act_window">
+        <field name="name">Download Attendance</field>
+        <field name="res_model">hr.zk.download.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>
