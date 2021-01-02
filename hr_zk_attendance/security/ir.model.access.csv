@@ -1,6 +1,9 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_hr_zk_machine_hr_user,zk.machine.hr_biometric_machine.hr,model_zk_machine,hr_attendance.group_hr_attendance_user,1,0,0,0
+access_hr_zk_log_hr_user,zk.machine.hr_biometric_machine1.hr,model_zk_machine_attendance,hr_attendance.group_hr_attendance_user,1,0,0,0
+access_hr_zk_hr_issue_hr_user,zk.issue.hr,model_hr_zk_issue,hr_attendance.group_hr_attendance_user,1,0,0,0
 access_hr_zk_machine_user,zk.machine.hr_biometric_machine,model_zk_machine,base.group_system,1,1,1,1
-access_hr_zk_machine_user1,zk.machine.hr_biometric_machine1,model_zk_machine_attendance,base.group_system,1,1,1,1
+access_hr_zk_log_user,zk.machine.hr_biometric_machine1,model_zk_machine_attendance,base.group_system,1,1,1,1
 access_hr_zk_issue,zk.issue,model_hr_zk_issue,base.group_system,1,1,1,1
 access_hr_zk_employee_machine_user,zk.issue,model_hr_biometric_employee,base.group_user,1,0,0,0
 access_hr_zk_employee_machine_hr_user,zk.issue,model_hr_biometric_employee,hr.group_hr_user,1,1,1,1

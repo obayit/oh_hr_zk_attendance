@@ -7,10 +7,10 @@ class HrEmployee(models.Model):
 
     device_ids = fields.One2many('hr.biometric.employee', 'employee_id', 'Biometric Device ID')
 
-    def get_time_period(self, datetime_str, tz_offset_number):
+    def get_time_period(self, datetime_str, tz_offset_number, states=['open']):
         self.ensure_one()
         datetime_date = fields.Datetime.from_string(datetime_str)
-        contract_ids = self.sudo()._get_contracts(datetime_str, datetime_str)
+        contract_ids = self.sudo()._get_contracts(datetime_str, datetime_str, states)
         attendance_ids = contract_ids.mapped('resource_calendar_id.attendance_ids')
         closest_period = {'value': 99, 'type': False, 'period': False}
         period_counter = 0

@@ -30,6 +30,7 @@
                             <field name="address_id"/>
                             <field name="tz"/>
                             <field name="tz_offset"/>
+                            <field name="allow_expired_contracts"/>
                             <field name="ignore_time" groups="base.group_no_one"/>
                         </group>
                         <group>

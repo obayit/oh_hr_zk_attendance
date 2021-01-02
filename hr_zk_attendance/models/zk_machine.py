@@ -50,6 +50,7 @@ class ZkMachine(models.Model):
     ignore_time = fields.Integer('Ignore Period', help="Ignore attendance record when the duration is shorter than this.", default=120)
     issue_ids = fields.One2many('hr.zk.issue', 'machine_id', 'Issues')
     issue_count = fields.Integer('Issues Count', compute='_compute_issue_count')
+    allow_expired_contracts = fields.Boolean(default=False)
 
     tz = fields.Selection(_tz_get, 'Timezone', default=lambda self: self._context.get('tz'), required=True)
     tz_offset = fields.Char('Timezone Offset', compute='_compute_tz_offset', invisible=True)
@@ -148,7 +149,10 @@ class ZkMachine(models.Model):
                 if duplicate_attendance_ids:
                     continue
 
-                closest_period = employee_id.get_time_period(converted_time, info.tz_offset_number)
+                contract_states = ['open']
+                if info.allow_expired_contracts:
+                    contract_states.append('close')
+                closest_period = employee_id.get_time_period(converted_time, info.tz_offset_number, contract_states)
                 if not closest_period['type']:
                     info.create_issue(issue_obj, {
                         'employee_id': employee_id.id,
