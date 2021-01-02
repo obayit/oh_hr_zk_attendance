@@ -42,6 +42,7 @@ class ZkMachine(models.Model):
     _description = 'ZK Machine Configuration'
 
     name = fields.Char('Machine IP', required=True)
+    description = fields.Char('Description')
     port_no = fields.Integer('Port No.', required=True)
     is_udp = fields.Boolean('Is using UDP', default=False)
     address_id = fields.Many2one('res.partner', 'Address')

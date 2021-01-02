@@ -16,17 +16,18 @@
                             <field string="Issues" name="issue_count" widget="statinfo"/>
                         </button>
                     </div>
-                    <div class="oe_title">
+                    <div class="oe_title" groups="base.group_system">
                         <label for="name" />
                         <h1>
-                            <field name="name" placeholder="Machine IP"/>
+                            <field name="name" placeholder="Machine IP" groups="base.group_system"/>
                         </h1>
                     </div>
                     <group>
                         <group>
-                            <field name="port_no"/>
-                            <field name="is_udp"/>
-                            <field name="password" password="True" groups="hr_attendance.group_hr_attendance_manager"/>
+                            <field name="description" placeholder="Description for HR users"/>
+                            <field name="port_no" groups="base.group_system"/>
+                            <field name="is_udp" groups="base.group_system"/>
+                            <field name="password" password="True" groups="base.group_system"/>
                             <field name="address_id"/>
                             <field name="tz"/>
                             <field name="tz_offset"/>
