@@ -5,7 +5,7 @@
     'category': 'Human Resources',
     'author': 'Obay Abdelgadir',
     'website': "http://www.github.com/obayit",
-    'depends': ['base_setup', 'hr_attendance', 'hr_contract'],
+    'depends': ['base_setup', 'hr_attendance', 'hr_contract', 'hr_work_entry'],
     'data': [
         'security/ir.model.access.csv',
         'wizards/wizard_download_attendance_views.xml',
