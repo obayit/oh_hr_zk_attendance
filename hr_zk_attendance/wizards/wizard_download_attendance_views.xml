@@ -8,11 +8,14 @@
             <form>
                 <sheet>
                     <group>
+                        <field name="duration_type"/>
+                    </group>
+                    <group>
                         <group>
-                            <field name="date_from"/>
+                            <field name="date_from" attrs="{'readonly': [('duration_type', '=', 'this_month')]}"/>
                         </group>
                         <group>
-                            <field name="date_to"/>
+                            <field name="date_to" attrs="{'readonly': [('duration_type', '=', 'this_month')]}"/>
                         </group>
                     </group>
                 </sheet>
