@@ -199,12 +199,20 @@ class ZkMachine(models.Model):
                             'issue_type': 'missing_in',
                             })
                 else:  # assume check-out
-                    time_diff = (fields.Datetime.from_string(converted_time) - att_var.check_in).seconds
+                    time_diff = (fields.Datetime.from_string(converted_time) - att_var.check_in).total_seconds()
                     if time_diff < info.ignore_time:
                         continue
-                    if closest_period['type'] == 'check_out' and closest_period['period'] == att_var.period_number:
+                    if closest_period['type'] == 'check_out' and closest_period['period'] == att_var.period_number and time_diff < 24 * 60 * 60:
                         # normal
                         att_var.write({'check_out': converted_time})
+                        if not self.env['hr.work.entry'].search([('date_start', '=', att_var.check_in), ('date_stop', '=', att_var.check_out), ('employee_id', '=', employee_id.id)]):
+                            self.env['hr.work.entry'].create({
+                                'name': 'Attendance',
+                                'employee_id': employee_id.id,
+                                'work_entry_type_id': self.env.ref('hr_work_entry.work_entry_type_attendance').id,
+                                'date_start': att_var.check_in,
+                                'date_stop': att_var.check_out,
+                            }).action_validate()
                     else:
                         att_var.check_out = att_var.check_in
                         abnormal_record = att_obj.create({'employee_id': employee_id.id,
