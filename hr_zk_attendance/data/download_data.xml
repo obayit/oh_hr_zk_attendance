@@ -12,4 +12,13 @@
         <field name="state">code</field>
         <field name="code">model.cron_download()</field>
     </record>
+
+    <record id="default_month_start_config" model="ir.config_parameter">
+        <field name="key">hr_zk_attendance.month_start</field>
+        <field name="value">21</field>
+    </record>
+    <record id="default_month_end_config" model="ir.config_parameter">
+        <field name="key">hr_zk_attendance.month_end</field>
+        <field name="value">20</field>
+    </record>
 </odoo>
